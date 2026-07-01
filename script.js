@@ -1,3 +1,64 @@
+// Preloader
+document.body.classList.add('preloading');
+const preloader = document.querySelector('.preloader');
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    preloader?.classList.add('loaded');
+    document.body.classList.remove('preloading');
+  }, 500);
+});
+
+// Scroll progress bar
+const scrollProgress = document.querySelector('.scroll-progress');
+if (scrollProgress) {
+  window.addEventListener('scroll', () => {
+    const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0;
+    scrollProgress.style.width = `${pct}%`;
+  }, { passive: true });
+}
+
+// Count-up stats
+const counters = document.querySelectorAll('[data-count]');
+if (counters.length) {
+  const countObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const el = entry.target;
+      const target = parseInt(el.dataset.count, 10);
+      const prefix = el.dataset.prefix || '';
+      const suffix = el.dataset.suffix || '';
+      const duration = 1400;
+      const start = performance.now();
+      function tick(now) {
+        const progress = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = `${prefix}${Math.round(target * eased)}${suffix}`;
+        if (progress < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+      countObserver.unobserve(el);
+    });
+  }, { threshold: 0.4 });
+  counters.forEach(el => countObserver.observe(el));
+}
+
+// Hero image slider
+const heroSlides = document.querySelectorAll('.hero-slide');
+const heroDots = document.querySelectorAll('.hero-slider-dots button');
+if (heroSlides.length) {
+  let heroIndex = 0;
+  function showHeroSlide(i) {
+    heroSlides[heroIndex].classList.remove('active');
+    heroDots[heroIndex]?.classList.remove('active');
+    heroIndex = (i + heroSlides.length) % heroSlides.length;
+    heroSlides[heroIndex].classList.add('active');
+    heroDots[heroIndex]?.classList.add('active');
+  }
+  heroDots.forEach((dot, i) => dot.addEventListener('click', () => showHeroSlide(i)));
+  setInterval(() => showHeroSlide(heroIndex + 1), 5000);
+}
+
 // Navbar background on scroll
 const navbar = document.querySelector('.navbar');
 if (navbar) {
@@ -17,6 +78,25 @@ const observer = new IntersectionObserver((entries) => {
   });
 }, { threshold: 0.15 });
 faders.forEach(el => observer.observe(el));
+
+// Subtle 3D tilt on premium cards
+function attachTilt(selector, maxTilt = 5, lift = 6) {
+  document.querySelectorAll(selector).forEach(card => {
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      const px = (e.clientX - rect.left) / rect.width - 0.5;
+      const py = (e.clientY - rect.top) / rect.height - 0.5;
+      const rotateY = px * maxTilt * 2;
+      const rotateX = -py * maxTilt * 2;
+      card.style.transform = `perspective(900px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-${lift}px)`;
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = '';
+    });
+  });
+}
+attachTilt('.price-card', 4, 6);
+attachTilt('.about-card', 3, 4);
 
 // Accordion
 document.querySelectorAll('.acc-head').forEach(head => {
